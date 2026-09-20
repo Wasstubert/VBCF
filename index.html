@@ -738,8 +738,22 @@ const KEY_LOCAL = "m13_francheville_local_v2";
 const DOW = ["DIM","LUN","MAR","MER","JEU","VEN","SAM"];
 const MOIS = ["janv","fév","mars","avr","mai","juin","juil","août","sept","oct","nov","déc"];
 const DAY_CHIPS = [[1,"Lun"],[2,"Mar"],[3,"Mer"],[4,"Jeu"],[5,"Ven"],[6,"Sam"],[0,"Dim"]];
+const DEP2F_PLAYERS = [
+  {id:"d1", nom:"Da Rocha", prenom:"Elyna", numero:11},
+  {id:"d2", nom:"Villard", prenom:"Romane", numero:5},
+  {id:"d3", nom:"Double", prenom:"Louise", numero:69},
+  {id:"d4", nom:"Mairet", prenom:"Eden", numero:8},
+  {id:"d5", nom:"Bruneau de la Salle", prenom:"Emma", numero:21},
+  {id:"d6", nom:"Auffret", prenom:"Jade", numero:null},
+  {id:"d7", nom:"Derreumaux", prenom:"Capucine", numero:2},
+  {id:"d8", nom:"Gouiaa", prenom:"Haifa", numero:5},
+  {id:"d9", nom:"Juan", prenom:"Clara", numero:7},
+  {id:"d10", nom:"Berger", prenom:"Chloé", numero:null},
+  {id:"d11", nom:"Bonnetain", prenom:"Carla", numero:null},
+];
 const BUILTIN_TEAMS = [
   { id: DEFAULT_TEAM_ID, name: "M13 Garçons", dates: BASE_DATES, players: BASE_PLAYERS, builtin: true },
+  { id: "dep2f", name: "DEP2F", dates: [], players: DEP2F_PLAYERS, builtin: true },
 ];
 
 /* ============================================================
