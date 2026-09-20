@@ -354,6 +354,88 @@
   body.readonly .status-btn, body.readonly textarea { pointer-events: none; }
   body.readonly .licence, body.readonly .add-date-btn, body.readonly .add-team-btn, body.readonly #addPlayerBtn { display: none; }
   button:focus-visible, input:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+  /* ---------- Page d'accueil ---------- */
+  #home { display: none; }
+  body.at-home #home { display: block; }
+  body.at-home > header, body.at-home > main, body.at-home > .bottom-bar { display: none; }
+
+  .home-hero {
+    position: relative; overflow: hidden; color: #F6F3EC;
+    background: linear-gradient(135deg, var(--navy), var(--navy-2));
+    padding: 44px 20px 36px;
+  }
+  .home-hero::after {
+    content: ""; position: absolute; right: -64px; top: -64px; width: 240px; height: 240px;
+    border-radius: 50%; border: 30px solid rgba(240, 99, 47, 0.18);
+  }
+  .home-inner { position: relative; z-index: 1; max-width: 560px; margin: 0 auto; }
+  .home-title {
+    font-family: 'Oswald', 'Arial Narrow', sans-serif; font-size: 68px; line-height: 1;
+    font-weight: 700; letter-spacing: 0.02em; margin: 0 0 8px;
+  }
+  .home-club { font-family: 'Oswald', 'Arial Narrow', sans-serif; font-size: 20px; font-weight: 500; color: var(--orange); margin: 0 0 14px; }
+  .home-tagline { margin: 0; font-size: 15px; line-height: 1.5; color: rgba(246, 243, 236, 0.8); }
+
+  .home-body { max-width: 560px; margin: 0 auto; padding: 22px 16px 40px; }
+  .home-section-head { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 12px; }
+  .home-section-head h2 { font-family: 'Oswald', 'Arial Narrow', sans-serif; font-size: 18px; font-weight: 600; margin: 0; }
+  .home-section-head span { font-size: 13px; color: var(--text-dim); }
+  .home-teams { display: flex; flex-direction: column; gap: 10px; }
+
+  .team-card {
+    display: flex; align-items: center; gap: 6px; padding: 6px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  }
+  .team-card-main {
+    flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px;
+    background: none; border: 0; border-radius: 12px; padding: 8px;
+    color: var(--text); font: inherit; text-align: left; cursor: pointer;
+  }
+  .team-card-main:hover, .team-card-main:active { background: var(--orange-dim); }
+  .team-tag {
+    flex: 0 0 auto; min-width: 48px; height: 48px; padding: 0 8px; border-radius: 12px;
+    background: var(--orange-dim); color: var(--orange);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Oswald', 'Arial Narrow', sans-serif; font-weight: 600; font-size: 16px;
+  }
+  .team-card-text { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .team-card-name {
+    font-family: 'Oswald', 'Arial Narrow', sans-serif; font-size: 19px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .team-card-meta { font-size: 13px; color: var(--text-dim); }
+  .team-card-go { color: var(--orange); font-size: 26px; line-height: 1; padding-right: 4px; }
+  .team-card-del {
+    flex: 0 0 auto; width: 40px; height: 40px; padding: 0; border-radius: 12px;
+    background: none; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .team-card-del:hover { color: var(--absent); border-color: var(--absent); background: var(--absent-bg); }
+  .team-card-del svg, .home-btn svg {
+    width: 18px; height: 18px; fill: none; stroke: currentColor;
+    stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  }
+  #homeAddTeam { margin-top: 16px; }
+  .home-restore {
+    display: block; margin: 14px auto 0; background: none; border: 0; padding: 6px;
+    color: var(--text-dim); font: 13px 'Inter', sans-serif; text-decoration: underline; cursor: pointer;
+  }
+  .home-restore[hidden] { display: none; }
+  .home-body .sync-state { margin: 16px 0 0; text-align: center; }
+
+  .home-btn {
+    flex: 0 0 auto; width: 32px; height: 32px; padding: 0; border-radius: 10px;
+    background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #F6F3EC; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ---------- Confirmation de suppression d'un collectif ---------- */
+  #deleteTeamOverlay { z-index: 50; }
+  #deleteTeamSheet { z-index: 51; }
+  #deleteTeamText { font-size: 14px; line-height: 1.5; margin: 0 0 14px; }
+  .add-submit.danger-submit { background: var(--absent); margin-top: 4px; }
+  .add-submit.ghost-submit { background: transparent; color: var(--text-dim); border: 1px solid var(--border); margin-top: 8px; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -362,11 +444,32 @@
 
 <div id="gate" role="status">Chargement…</div>
 
+<div id="home">
+  <div class="home-hero">
+    <div class="home-inner">
+      <h1 class="home-title">VBCF</h1>
+      <p class="home-club" id="homeClub">Francheville Volley</p>
+      <p class="home-tagline" id="homeTagline">Le suivi des présences de tes collectifs.</p>
+    </div>
+  </div>
+  <div class="home-body">
+    <div class="home-section-head">
+      <h2>Collectifs</h2>
+      <span id="homeCount"></span>
+    </div>
+    <div class="home-teams" id="homeTeams"></div>
+    <button type="button" class="add-submit" id="homeAddTeam">＋ Nouveau collectif</button>
+    <button type="button" class="home-restore" id="homeRestore" hidden></button>
+    <p class="sync-state" id="homeSync">Connexion aux données partagées…</p>
+  </div>
+</div>
+
 <header>
   <button type="button" class="task-btn" id="taskBtn" aria-label="Ouvrir les tâches">Tâche<span class="task-count" id="taskCount" hidden></span></button>
   <p class="kicker" id="clubLine">FRANCHEVILLE VOLLEY · M13 GARÇONS</p>
   <h1>VBCF</h1>
   <div class="team-row">
+    <button type="button" class="home-btn" id="homeBtn" aria-label="Retour à l’accueil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5 12 4l9 7.5M5.5 10v10h13V10M10 20v-6h4v6"/></svg></button>
     <div class="team-scroller" id="teamScroller"></div>
     <button class="add-team-btn" id="addTeamBtn">＋ Collectif</button>
   </div>
@@ -530,6 +633,17 @@
   <div class="custom-players-list" id="customTeamsList"></div>
 </div>
 
+<div class="sheet-overlay" id="deleteTeamOverlay"></div>
+<div class="sheet" id="deleteTeamSheet">
+  <button class="close-sheet" id="closeDeleteTeamSheet" aria-label="Fermer">✕</button>
+  <div class="sheet-handle"></div>
+  <h2 id="deleteTeamTitle">Supprimer le collectif ?</h2>
+  <p class="form-hint" id="deleteTeamText"></p>
+  <p class="form-error" id="deleteTeamError"></p>
+  <button class="add-submit danger-submit" id="confirmDeleteTeam">Supprimer définitivement</button>
+  <button class="add-submit ghost-submit" id="cancelDeleteTeam">Annuler</button>
+</div>
+
 <script>
 const BASE_DATES = ["2026-09-17","2026-09-22","2026-09-24","2026-09-29","2026-10-01","2026-10-06","2026-10-08","2026-10-13","2026-10-15","2026-10-20","2026-10-22","2026-10-27","2026-10-29","2026-11-03","2026-11-05","2026-11-10","2026-11-12","2026-11-17","2026-11-19","2026-11-24","2026-11-26","2026-12-01","2026-12-03","2026-12-08","2026-12-10","2026-12-15","2026-12-17","2026-12-22","2026-12-24","2026-12-29","2026-12-31","2027-01-05","2027-01-07","2027-01-12","2027-01-14","2027-01-19","2027-01-21","2027-01-26","2027-01-28","2027-02-02","2027-02-04","2027-02-09","2027-02-11","2027-02-16","2027-02-18","2027-02-23","2027-02-25","2027-03-02","2027-03-04","2027-03-09","2027-03-11","2027-03-16","2027-03-18","2027-03-23","2027-03-25","2027-03-30","2027-04-01","2027-04-06","2027-04-08","2027-04-13","2027-04-15","2027-04-20","2027-04-22","2027-04-27","2027-04-29","2027-05-04","2027-05-06","2027-05-11","2027-05-13","2027-05-18","2027-05-20","2027-05-25","2027-05-27","2027-06-01","2027-06-03","2027-06-08","2027-06-10","2027-06-15","2027-06-17","2027-06-22","2027-06-24","2027-06-29"];
 
@@ -615,8 +729,12 @@ let tabsSignature = "";
 let dateSignature = "";
 let inflight = 0;
 let localStore = { teams: [], data: {} };
+let hiddenBuiltin = false;     // le collectif de base (dans le code) a été supprimé
+let teamsLoaded = false;       // la liste des collectifs a été reçue au moins une fois
+let atHome = false;            // la page d'accueil est affichée
+let pushedEntry = false;       // une entrée d'historique a été ajoutée en ouvrant un collectif
 
-function allTeams() { return BUILTIN_TEAMS.concat(customTeams); }
+function allTeams() { return (hiddenBuiltin ? [] : BUILTIN_TEAMS).concat(customTeams); }
 function currentTeam() { return allTeams().find(t => t.id === currentTeamId) || BUILTIN_TEAMS[0]; }
 function baseDates() { return currentTeam().dates || []; }
 function basePlayers() { return currentTeam().players || []; }
@@ -667,9 +785,12 @@ async function upsert(ref, data) {
 function dbWrite(ref, data) { return enqueue(ref.path, () => upsert(ref, data)); }
 
 function setSyncState(message, isError = false) {
-  const el = document.getElementById("syncState");
-  el.textContent = message;
-  el.classList.toggle("error", isError);
+  ["syncState", "homeSync"].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = message;
+    el.classList.toggle("error", isError);
+  });
 }
 function syncOk() {
   if (mode === "db") setSyncState("Partagé avec toute l’équipe · à jour");
@@ -746,12 +867,13 @@ function startTeamsSub() {
     });
     fromDb.forEach(t => { delete optimisticTeams[t.id]; });
     customTeams = fromDb.concat(Object.values(optimisticTeams)).sort((a, b) => a.id < b.id ? -1 : 1);
-    if (pendingTeamId) {
-      const id = pendingTeamId;
-      pendingTeamId = null;
-      if (id !== currentTeamId && customTeams.some(t => t.id === id)) { selectTeam(id); return; }
-    }
-    if (!allTeams().some(t => t.id === currentTeamId)) { selectTeam(DEFAULT_TEAM_ID); return; }
+    // Le collectif de base n'existe que dans le code : sa suppression est un simple marqueur.
+    const base = snap.docs.find(d => d.id === DEFAULT_TEAM_ID);
+    hiddenBuiltin = !!(base && (base.data() || {}).deleted);
+    teamsLoaded = true;
+    if (!inflight) syncOk();
+    if (atHome) { renderHome(); return; }
+    if (!allTeams().some(t => t.id === currentTeamId)) { goHome(); return; }
     renderTeamTabs();
     scheduleRender();
   }, e => { console.error(e); setSyncState(errMsg(e), true); });
@@ -1235,7 +1357,10 @@ function renderTeamTabs(force) {
 
 function selectTeam(id, remember = true) {
   flushAll();
-  if (!allTeams().some(t => t.id === id)) id = DEFAULT_TEAM_ID;
+  if (!allTeams().some(t => t.id === id)) { goHome(); return; }
+  atHome = false;
+  document.body.classList.remove("at-home");
+  window.scrollTo(0, 0);
   currentTeamId = id;
   if (remember) { try { localStorage.setItem(KEY_TEAM, id); } catch (e) {} }
   drafts = {};
@@ -1245,6 +1370,94 @@ function selectTeam(id, remember = true) {
   else T = normalizeData(localStore.data[id]);
   renderTeamTabs(true);
   renderAll();
+}
+
+/* ---------- Page d'accueil ---------- */
+function goHome() {
+  flushAll();
+  stopTeamSubs();
+  atHome = true;
+  document.body.classList.add("at-home");
+  document.title = "VBCF";
+  window.scrollTo(0, 0);
+  renderHome();
+}
+
+// Ouvre un collectif depuis l'accueil et ajoute une entrée d'historique :
+// le bouton « retour » du téléphone ramène alors à l'accueil.
+function enterTeam(id) {
+  try { history.pushState({ team: id }, ""); pushedEntry = true; } catch (e) {}
+  selectTeam(id);
+}
+function requestHome() {
+  if (pushedEntry) { history.back(); return; }
+  goHome();
+}
+window.addEventListener("popstate", ev => {
+  const id = ev.state && ev.state.team;
+  if (id && allTeams().some(t => t.id === id)) { pushedEntry = true; selectTeam(id); return; }
+  pushedEntry = false;
+  if (!atHome) goHome();
+});
+
+function teamTag(name) {
+  const w = String(name).trim().split(/\s+/)[0] || "?";
+  return (w.length <= 4 ? w : w.slice(0, 3)).toUpperCase();
+}
+function nextSessionLabel(team) {
+  const today = todayISO();
+  const next = (team.dates || []).filter(d => d >= today).sort()[0];
+  if (!next) return "Ouvrir les présences";
+  if (next === today) return "Séance aujourd’hui";
+  const label = parseDate(next).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "short" });
+  return "Prochaine séance : " + label;
+}
+
+const TRASH_ICON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>';
+
+function renderHome() {
+  const s = seasonDefaults();
+  document.getElementById("homeTagline").textContent = `Présences de la saison ${s.from.slice(0, 4)}–${s.to.slice(0, 4)}`;
+  const list = document.getElementById("homeTeams");
+  const teams = allTeams();
+  list.innerHTML = "";
+  document.getElementById("homeCount").textContent = teamsLoaded && teams.length ? String(teams.length) : "";
+  if (!teamsLoaded) {
+    const p = document.createElement("div");
+    p.className = "empty-state";
+    p.textContent = "Chargement des collectifs…";
+    list.appendChild(p);
+  } else if (!teams.length) {
+    const p = document.createElement("div");
+    p.className = "empty-state";
+    p.textContent = "Aucun collectif pour l’instant. Crée le premier avec le bouton ci-dessous.";
+    list.appendChild(p);
+  } else {
+    teams.forEach(t => {
+      const card = document.createElement("div");
+      card.className = "team-card";
+      const main = document.createElement("button");
+      main.type = "button";
+      main.className = "team-card-main";
+      main.innerHTML = `<span class="team-tag">${esc(teamTag(t.name))}</span>` +
+        `<span class="team-card-text"><span class="team-card-name">${esc(t.name)}</span>` +
+        `<span class="team-card-meta">${esc(nextSessionLabel(t))}</span></span>` +
+        `<span class="team-card-go" aria-hidden="true">›</span>`;
+      main.addEventListener("click", () => enterTeam(t.id));
+      const del = document.createElement("button");
+      del.type = "button";
+      del.className = "team-card-del";
+      del.setAttribute("aria-label", "Supprimer le collectif " + t.name);
+      del.innerHTML = TRASH_ICON;
+      del.addEventListener("click", () => askDeleteTeam(t.id));
+      card.append(main, del);
+      list.appendChild(card);
+    });
+  }
+  const restore = document.getElementById("homeRestore");
+  const builtinName = BUILTIN_TEAMS[0].name;
+  restore.hidden = !(teamsLoaded && hiddenBuiltin);
+  restore.textContent = `Rétablir « ${builtinName} »`;
 }
 
 function renderCustomTeamsList() {
@@ -1260,34 +1473,85 @@ function renderCustomTeamsList() {
     const btn = document.createElement("button");
     btn.className = "remove-player";
     btn.textContent = "Supprimer";
-    btn.addEventListener("click", () => removeCustomTeam(t.id));
+    btn.addEventListener("click", () => askDeleteTeam(t.id));
     row.appendChild(btn);
     el.appendChild(row);
   });
 }
 
-async function removeCustomTeam(id) {
-  const team = customTeams.find(t => t.id === id);
+/* ---------- Suppression d'un collectif ---------- */
+let deleteTeamId = null;
+function askDeleteTeam(id) {
+  const team = allTeams().find(t => t.id === id);
   if (!team) return;
-  if (!confirm(`Supprimer le collectif « ${team.name} » et toutes ses données (présences, résumés) ?`)) return;
+  deleteTeamId = id;
+  document.getElementById("deleteTeamTitle").textContent = `Supprimer « ${team.name} » ?`;
+  document.getElementById("deleteTeamText").textContent =
+    "Le collectif disparaît pour tout le monde, avec ses présences, ses résumés, ses tâches et les joueurs ajoutés. Cette action est définitive." +
+    (team.builtin ? " Tu pourras le rétablir depuis l’accueil, mais sans ses présences." : "");
+  document.getElementById("deleteTeamError").textContent = "";
+  document.getElementById("confirmDeleteTeam").disabled = false;
+  openSheet("deleteTeamOverlay", "deleteTeamSheet");
+}
+function closeDeleteTeamSheet() {
+  closeSheetPair("deleteTeamOverlay", "deleteTeamSheet");
+  deleteTeamId = null;
+}
+
+async function deleteTeam(id) {
+  const team = allTeams().find(t => t.id === id);
+  if (!team) return true;
+  const isBuiltin = !!team.builtin;
+  // Une sauvegarde en attente ne doit pas recréer le collectif après sa suppression.
+  if (id === currentTeamId && !atHome) {
+    Object.values(pendingSaves).forEach(p => { clearTimeout(p.timer); p.timer = null; });
+    drafts = {};
+    stopTeamSubs();
+  } else {
+    flushAll();
+  }
+  await Promise.all(Object.values(chains).map(p => p.catch(() => {})));
   if (mode === "db") {
     const ok = await persist(async () => {
       const base = teamRef(id);
       for (const c of ["sessions", "meta"]) {
         const snap = await base.collection(c).get();
-        for (const d of snap.docs) await base.collection(c).doc(d.id).delete();
+        for (let i = 0; i < snap.docs.length; i += 400) {
+          const batch = fsdb.batch();
+          snap.docs.slice(i, i + 400).forEach(d => batch.delete(d.ref));
+          await batch.commit();
+        }
       }
-      await base.delete();
+      if (isBuiltin) await base.set({ deleted: true });
+      else await base.delete();
     });
-    if (!ok) return;
+    if (!ok) {
+      // La suppression a échoué : on réactive l'écoute du collectif s'il est encore affiché.
+      if (id === currentTeamId && !atHome) subscribeTeam(id);
+      return false;
+    }
   }
+  if (isBuiltin) hiddenBuiltin = true;
   customTeams = customTeams.filter(t => t.id !== id);
   delete optimisticTeams[id];
   delete localStore.data[id];
-  if (currentTeamId === id) selectTeam(DEFAULT_TEAM_ID);
-  else if (mode === "local") saveLocal();
-  renderTeamTabs(true);
+  if (id === currentTeamId && !atHome) {
+    closeAddTeamSheet();
+    goHome();
+  } else {
+    if (mode === "local") saveLocal();
+    renderHome();
+  }
+  if (!atHome) renderTeamTabs(true);
   renderCustomTeamsList();
+  return true;
+}
+
+async function restoreBuiltinTeam() {
+  const ok = await persist(() => teamRef(DEFAULT_TEAM_ID).delete());
+  if (!ok) return;
+  hiddenBuiltin = false;
+  renderHome();
 }
 
 function buildDayChips() {
@@ -1485,7 +1749,7 @@ document.getElementById("closeTaskSheet").addEventListener("click", closeTaskShe
 document.getElementById("submitTask").addEventListener("click", submitTask);
 document.getElementById("taskInput").addEventListener("keydown", e => { if (e.key === "Enter") submitTask(); });
 
-document.getElementById("addTeamBtn").addEventListener("click", () => {
+function openAddTeamSheet() {
   buildDayChips();
   const d = seasonDefaults();
   document.getElementById("teamFrom").value = d.from;
@@ -1493,6 +1757,26 @@ document.getElementById("addTeamBtn").addEventListener("click", () => {
   document.getElementById("teamError").textContent = "";
   renderCustomTeamsList();
   openSheet("addTeamOverlay", "addTeamSheet");
+}
+document.getElementById("addTeamBtn").addEventListener("click", openAddTeamSheet);
+document.getElementById("homeAddTeam").addEventListener("click", openAddTeamSheet);
+document.getElementById("homeBtn").addEventListener("click", requestHome);
+document.getElementById("homeRestore").addEventListener("click", restoreBuiltinTeam);
+
+document.getElementById("deleteTeamOverlay").addEventListener("click", closeDeleteTeamSheet);
+document.getElementById("closeDeleteTeamSheet").addEventListener("click", closeDeleteTeamSheet);
+document.getElementById("cancelDeleteTeam").addEventListener("click", closeDeleteTeamSheet);
+document.getElementById("confirmDeleteTeam").addEventListener("click", async () => {
+  const id = deleteTeamId;
+  if (!id) return;
+  const btn = document.getElementById("confirmDeleteTeam");
+  const err = document.getElementById("deleteTeamError");
+  btn.disabled = true;
+  err.textContent = "";
+  const ok = await deleteTeam(id);
+  btn.disabled = false;
+  if (!ok) { err.textContent = "Suppression impossible : vérifie ta connexion puis réessaie."; return; }
+  closeDeleteTeamSheet();
 });
 const closeAddTeamSheet = () => closeSheetPair("addTeamOverlay", "addTeamSheet");
 document.getElementById("addTeamOverlay").addEventListener("click", closeAddTeamSheet);
@@ -1532,14 +1816,13 @@ document.getElementById("submitAddTeam").addEventListener("click", async () => {
   }
   document.getElementById("newTeamName").value = "";
   closeAddTeamSheet();
-  selectTeam(id);
+  if (atHome) enterTeam(id); else selectTeam(id);
 });
 
 /* ============================================================
    Démarrage
    ============================================================ */
 loadLocal();
-try { pendingTeamId = localStorage.getItem(KEY_TEAM); } catch (e) {}
 renderTeamTabs(true);
 renderAll();
 setSyncState("Connexion aux données partagées…");
@@ -1584,8 +1867,8 @@ function startShared(root) {
   db = root;
   mode = "db";
   startTeamsSub();
-  selectTeam(DEFAULT_TEAM_ID, false);
   document.body.classList.remove("booting");
+  goHome();
 }
 
 function showGate(message, isError) {
