@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>M13 Garçons — Présences</title>
+<title>VBCF</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -295,6 +295,45 @@
   }
   .save-state { font-size: 11px; color: var(--text-dim); min-width: 74px; text-align: right; align-self: center; }
   .daily-player-recap .save-state, .player-recap-editor .save-state { align-self: flex-end; }
+
+  .kicker, header h1 { padding-right: 96px; }
+  .task-btn {
+    position: absolute; top: 16px; right: 16px; z-index: 2;
+    display: flex; align-items: center; gap: 6px;
+    background: var(--orange); color: #fff; border: 0; border-radius: 10px;
+    padding: 8px 13px; cursor: pointer;
+    font-family: 'Oswald', 'Arial Narrow', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.03em;
+  }
+  .task-count {
+    min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
+    background: #fff; color: var(--orange); font-size: 11px; font-weight: 700;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .task-count[hidden] { display: none; }
+  .task-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; }
+  .task-row:last-child { border-bottom: none; }
+  .task-row input[type="checkbox"] { width: 20px; height: 20px; flex: 0 0 auto; accent-color: var(--orange); margin: 0; }
+  .task-row .task-text { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+  .task-row.done .task-text { text-decoration: line-through; opacity: 0.55; }
+
+  .dots-btn {
+    flex: 0 0 auto; width: 34px; height: 34px; padding: 0; border-radius: 10px;
+    background: none; border: 1px solid var(--border); color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .dots-btn svg { width: 16px; height: 16px; fill: currentColor; }
+  .player-menu {
+    position: fixed; z-index: 60; min-width: 170px; display: none;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.28); padding: 6px;
+  }
+  .player-menu.open { display: block; }
+  .player-menu button {
+    display: block; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px;
+    padding: 11px 12px; font-family: 'Inter', sans-serif; font-weight: 600; font-size: 14px; color: var(--text); cursor: pointer;
+  }
+  .player-menu button:hover { background: var(--orange-dim); }
+  .player-menu button.danger { color: var(--absent); }
   #gate { display: none; padding: 64px 24px; text-align: center; color: var(--text-dim); line-height: 1.6; font-size: 15px; }
   #gate strong { display: block; font-family: 'Oswald', 'Arial Narrow', sans-serif; font-size: 20px; color: var(--text); margin-bottom: 6px; }
   #gate .pw-title { font-family: 'Oswald', 'Arial Narrow', sans-serif; font-size: 22px; font-weight: 600; color: var(--text); margin: 0 0 4px; }
@@ -324,8 +363,9 @@
 <div id="gate" role="status">Chargement…</div>
 
 <header>
+  <button type="button" class="task-btn" id="taskBtn" aria-label="Ouvrir les tâches">Tâche<span class="task-count" id="taskCount" hidden></span></button>
   <p class="kicker" id="clubLine">FRANCHEVILLE VOLLEY · M13 GARÇONS</p>
-  <h1>Feuille de présence</h1>
+  <h1>VBCF</h1>
   <div class="team-row">
     <div class="team-scroller" id="teamScroller"></div>
     <button class="add-team-btn" id="addTeamBtn">＋ Collectif</button>
@@ -358,7 +398,7 @@
 </main>
 
 <div class="bottom-bar">
-  <button class="bottom-btn secondary" id="addPlayerBtn">＋ Joueurs</button>
+  <button class="bottom-btn secondary" id="addPlayerBtn">＋ Joueur</button>
   <button class="bottom-btn" id="recapBtn">Récap saison</button>
 </div>
 
@@ -381,7 +421,7 @@
 <div class="sheet" id="addSheet">
   <button class="close-sheet" id="closeAddSheet" aria-label="Fermer">✕</button>
   <div class="sheet-handle"></div>
-  <h2 id="addPlayerTitle">Ajouter ou supprimer un joueur</h2>
+  <h2 id="addPlayerTitle">Ajouter un joueur</h2>
   <div class="field">
     <label for="newPrenom">Prénom</label>
     <input type="text" id="newPrenom" placeholder="Ex. Lucas" autocomplete="off">
@@ -413,6 +453,40 @@
   </div>
   <button class="add-submit" id="submitAddDate">Ajouter au calendrier</button>
   <div class="custom-players-list" id="customDatesList"></div>
+</div>
+
+<div class="player-menu" id="playerMenu" role="menu">
+  <button type="button" role="menuitem" id="menuRename">Renommer</button>
+  <button type="button" role="menuitem" id="menuDelete" class="danger">Supprimer</button>
+</div>
+
+<div class="sheet-overlay" id="renameOverlay"></div>
+<div class="sheet" id="renameSheet">
+  <button class="close-sheet" id="closeRenameSheet" aria-label="Fermer">✕</button>
+  <div class="sheet-handle"></div>
+  <h2>Renommer le joueur</h2>
+  <div class="field">
+    <label for="renamePrenom">Prénom</label>
+    <input type="text" id="renamePrenom" autocomplete="off" maxlength="40">
+  </div>
+  <div class="field">
+    <label for="renameNom">Nom</label>
+    <input type="text" id="renameNom" autocomplete="off" maxlength="60">
+  </div>
+  <button class="add-submit" id="submitRename">Enregistrer</button>
+</div>
+
+<div class="sheet-overlay" id="taskOverlay"></div>
+<div class="sheet" id="taskSheet">
+  <button class="close-sheet" id="closeTaskSheet" aria-label="Fermer">✕</button>
+  <div class="sheet-handle"></div>
+  <h2 id="taskTitle">Tâches</h2>
+  <div class="field">
+    <label for="taskInput">Nouvelle tâche</label>
+    <input type="text" id="taskInput" placeholder="Ex. Apporter les ballons" autocomplete="off" maxlength="200">
+  </div>
+  <button class="add-submit" id="submitTask">Ajouter la tâche</button>
+  <div class="custom-players-list" id="taskList"></div>
 </div>
 
 <div class="sheet-overlay" id="licenceOverlay"></div>
@@ -497,7 +571,7 @@ const BUILTIN_TEAMS = [
      recaps:   { player:{pid:text}, season:"" }
    ============================================================ */
 function emptyData() {
-  return { sessions: {}, roster: { players: [], dates: [], removed: [] }, licences: {}, recaps: { player: {}, season: "" } };
+  return { sessions: {}, roster: { players: [], dates: [], removed: [] }, licences: {}, names: {}, tasks: {}, recaps: { player: {}, season: "" } };
 }
 function normalizeData(d) {
   const e = emptyData();
@@ -510,6 +584,8 @@ function normalizeData(d) {
       removed: d.roster && Array.isArray(d.roster.removed) ? d.roster.removed : [],
     },
     licences: isObj(d.licences) ? d.licences : {},
+    names: isObj(d.names) ? d.names : {},
+    tasks: isObj(d.tasks) ? d.tasks : {},
     recaps: {
       player: d.recaps && isObj(d.recaps.player) ? d.recaps.player : {},
       season: d.recaps && typeof d.recaps.season === "string" ? d.recaps.season : "",
@@ -546,7 +622,12 @@ function baseDates() { return currentTeam().dates || []; }
 function basePlayers() { return currentTeam().players || []; }
 
 function refreshDerived() {
-  PLAYERS = basePlayers().concat(T.roster.players).filter(p => !T.roster.removed.includes(p.id));
+  PLAYERS = basePlayers().concat(T.roster.players)
+    .filter(p => !T.roster.removed.includes(p.id))
+    .map(p => {
+      const n = T.names[p.id];
+      return n && isObj(n) ? Object.assign({}, p, { prenom: String(n.prenom ?? p.prenom), nom: String(n.nom ?? p.nom) }) : p;
+    });
   DATES = Array.from(new Set(baseDates().concat(T.roster.dates))).sort();
   if (!currentIso || !DATES.includes(currentIso)) currentIso = DATES.length ? DATES[findDefaultDateIndex()] : null;
 }
@@ -643,14 +724,16 @@ function subscribeTeam(tid) {
   }, onErr));
   unsubs.push(base.collection("meta").onSnapshot(snap => {
     if (tid !== currentTeamId) return;
-    let roster = { players: [], dates: [], removed: [] }, licences = {}, recaps = { player: {}, season: "" };
+    let roster = { players: [], dates: [], removed: [] }, licences = {}, names = {}, tasks = {}, recaps = { player: {}, season: "" };
     snap.docs.forEach(d => {
       const v = d.data() || {};
       if (d.id === "roster") roster = { players: Array.isArray(v.players) ? v.players : [], dates: Array.isArray(v.dates) ? v.dates : [], removed: Array.isArray(v.removed) ? v.removed : [] };
       else if (d.id === "licences") licences = isObj(v.map) ? v.map : {};
+      else if (d.id === "names") names = isObj(v.map) ? v.map : {};
+      else if (d.id === "tasks") tasks = isObj(v.map) ? v.map : {};
       else if (d.id === "recaps") recaps = { player: isObj(v.player) ? v.player : {}, season: typeof v.season === "string" ? v.season : "" };
     });
-    T.roster = roster; T.licences = licences; T.recaps = recaps;
+    T.roster = roster; T.licences = licences; T.names = names; T.tasks = tasks; T.recaps = recaps;
     if (!inflight) syncOk();
     scheduleRender();
   }, onErr));
@@ -782,6 +865,46 @@ async function restorePlayer(id) {
   renderCustomPlayersList();
   await saveRoster();
 }
+async function renamePlayer(pid, prenom, nom) {
+  T.names[pid] = { prenom, nom };
+  refreshDerived();
+  renderAll();
+  const tid = currentTeamId;
+  await persist(() => dbWrite(metaRef(tid, "names"), { map: { [pid]: { prenom, nom } } }));
+}
+
+function taskList() {
+  return Object.entries(T.tasks).map(([id, v]) => ({
+    id, text: String(v && v.text || ""), done: !!(v && v.done), ts: Number(v && v.ts) || 0,
+  })).sort((a, b) => (a.done - b.done) || (a.ts - b.ts));
+}
+async function addTask(text) {
+  const id = "t_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+  const task = { text, done: false, ts: Date.now() };
+  T.tasks[id] = task;
+  renderTasks(); renderTaskBadge();
+  const tid = currentTeamId;
+  await persist(() => dbWrite(metaRef(tid, "tasks"), { map: { [id]: task } }));
+}
+async function toggleTask(id) {
+  const t = T.tasks[id];
+  if (!t) return;
+  t.done = !t.done;
+  const done = t.done;
+  renderTasks(); renderTaskBadge();
+  const tid = currentTeamId;
+  await persist(() => dbWrite(metaRef(tid, "tasks"), { map: { [id]: { done } } }));
+}
+async function deleteTask(id) {
+  delete T.tasks[id];
+  renderTasks(); renderTaskBadge();
+  const tid = currentTeamId;
+  await persist(() => enqueue(metaRef(tid, "tasks").path, async () => {
+    try { await metaRef(tid, "tasks").update({ ["map." + id]: firebase.firestore.FieldValue.delete() }); }
+    catch (e) { if (!(e && e.code === "not-found")) throw e; }
+  }));
+}
+
 async function addDate(iso) {
   if (!iso || DATES.includes(iso)) return;
   T.roster.dates = T.roster.dates.concat([iso]).sort();
@@ -859,11 +982,12 @@ function wireRecap(field, stateEl, scope, key, saved) {
 }
 
 function renderPlayerList() {
+  closePlayerMenu();
   const iso = currentIso;
   const list = document.getElementById("playerList");
   list.innerHTML = "";
   const hints = [];
-  if (!PLAYERS.length) hints.push("Aucun joueur pour l’instant : ajoute-en avec « ＋ Joueurs » en bas.");
+  if (!PLAYERS.length) hints.push("Aucun joueur pour l’instant : ajoute-en avec « ＋ Joueur » en bas.");
   if (!iso) hints.push("Aucune séance : ajoute une date avec le ＋ en haut.");
   if (hints.length) {
     const empty = document.createElement("div");
@@ -901,6 +1025,14 @@ function renderPlayerList() {
     licBtn.addEventListener("click", () => openLicenceSheet(p));
     const namesEl = row.querySelector(".names");
     namesEl.insertBefore(licBtn, namesEl.firstChild);
+    const dots = document.createElement("button");
+    dots.type = "button";
+    dots.className = "dots-btn";
+    dots.setAttribute("aria-label", "Options pour " + p.prenom + " " + p.nom);
+    dots.setAttribute("aria-haspopup", "menu");
+    dots.innerHTML = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="3" r="1.6"/><circle cx="8" cy="8" r="1.6"/><circle cx="8" cy="13" r="1.6"/></svg>';
+    dots.addEventListener("click", ev => { ev.stopPropagation(); openPlayerMenu(p, dots); });
+    row.querySelector(".status-toggle").after(dots);
     row.querySelectorAll(".status-btn").forEach(btn => {
       btn.addEventListener("click", () => setStatus(iso, p.id, btn.dataset.status));
     });
@@ -964,6 +1096,7 @@ function renderAll() {
   renderSessionBar();
   renderPlayerList();
   renderDailyRecap();
+  renderTaskBadge();
   if (rebuilt) scrollActiveIntoView();
 }
 
@@ -986,6 +1119,7 @@ function scheduleRender() {
     renderAll();
     if (document.getElementById("sheet").classList.contains("open")) renderRecap();
     if (document.getElementById("addSheet").classList.contains("open")) renderCustomPlayersList();
+    if (document.getElementById("taskSheet").classList.contains("open")) renderTasks();
   });
 }
 document.addEventListener("focusout", () => {
@@ -997,47 +1131,66 @@ document.addEventListener("focusout", () => {
 function renderCustomPlayersList() {
   const el = document.getElementById("customPlayersList");
   el.innerHTML = "";
-  const all = basePlayers().concat(T.roster.players);
-  const active = all.filter(p => !T.roster.removed.includes(p.id));
-  const removed = all.filter(p => T.roster.removed.includes(p.id));
-  const label = p => `${esc(p.prenom)} ${esc(p.nom)}${p.numero ? " · n°" + esc(p.numero) : ""}`;
-  if (active.length) {
-    const h = document.createElement("h3");
-    h.textContent = "Effectif · supprimer un joueur";
-    el.appendChild(h);
-    active.forEach(p => {
-      const row = document.createElement("div");
-      row.className = "custom-player-row";
-      row.innerHTML = `<span>${label(p)}</span>`;
-      const btn = document.createElement("button");
-      btn.className = "remove-player";
-      btn.textContent = "Supprimer";
-      btn.addEventListener("click", () => {
-        if (confirm(`Supprimer ${p.prenom} ${p.nom} de l’effectif ?\n\nIl disparaît de la feuille pour tout le monde. Ses présences déjà enregistrées sont conservées et tu peux le rétablir ensuite.`)) removePlayer(p.id);
-      });
-      row.appendChild(btn);
-      el.appendChild(row);
-    });
-  }
-  if (removed.length) {
-    const h = document.createElement("h3");
-    h.style.marginTop = "18px";
-    h.textContent = "Joueurs supprimés";
-    el.appendChild(h);
-    removed.forEach(p => {
-      const row = document.createElement("div");
-      row.className = "custom-player-row";
-      row.innerHTML = `<span style="opacity:.6">${label(p)}</span>`;
-      const btn = document.createElement("button");
-      btn.className = "remove-player";
-      btn.style.color = "var(--present)";
-      btn.textContent = "Rétablir";
-      btn.addEventListener("click", () => restorePlayer(p.id));
-      row.appendChild(btn);
-      el.appendChild(row);
-    });
-  }
+  const removed = basePlayers().concat(T.roster.players).filter(p => T.roster.removed.includes(p.id));
+  if (!removed.length) return;
+  const h = document.createElement("h3");
+  h.textContent = "Joueurs supprimés";
+  el.appendChild(h);
+  removed.forEach(p => {
+    const row = document.createElement("div");
+    row.className = "custom-player-row";
+    row.innerHTML = `<span style="opacity:.6">${esc(p.prenom)} ${esc(p.nom)}${p.numero ? " · n°" + esc(p.numero) : ""}</span>`;
+    const btn = document.createElement("button");
+    btn.className = "remove-player";
+    btn.style.color = "var(--present)";
+    btn.textContent = "Rétablir";
+    btn.addEventListener("click", () => restorePlayer(p.id));
+    row.appendChild(btn);
+    el.appendChild(row);
+  });
 }
+
+function renderTaskBadge() {
+  const badge = document.getElementById("taskCount");
+  if (!badge) return;
+  const open = taskList().filter(t => !t.done).length;
+  badge.textContent = String(open);
+  badge.hidden = open === 0;
+}
+function renderTasks() {
+  const el = document.getElementById("taskList");
+  el.innerHTML = "";
+  const list = taskList();
+  if (!list.length) {
+    const p = document.createElement("p");
+    p.style.cssText = "color:var(--text-dim);font-size:14px;margin:6px 0 0;";
+    p.textContent = "Aucune tâche pour l’instant.";
+    el.appendChild(p);
+    return;
+  }
+  const h = document.createElement("h3");
+  h.textContent = "À faire";
+  el.appendChild(h);
+  list.forEach(t => {
+    const row = document.createElement("div");
+    row.className = "task-row" + (t.done ? " done" : "");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = t.done;
+    cb.setAttribute("aria-label", "Terminée : " + t.text);
+    cb.addEventListener("change", () => toggleTask(t.id));
+    const label = document.createElement("span");
+    label.className = "task-text";
+    label.textContent = t.text;
+    const del = document.createElement("button");
+    del.className = "remove-player";
+    del.textContent = "Supprimer";
+    del.addEventListener("click", () => deleteTask(t.id));
+    row.append(cb, label, del);
+    el.appendChild(row);
+  });
+}
+
 function renderCustomDatesList() {
   const el = document.getElementById("customDatesList");
   if (!T.roster.dates.length) { el.innerHTML = ""; return; }
@@ -1074,7 +1227,7 @@ function renderTeamTabs(force) {
   document.getElementById("clubLine").textContent = `${CLUB_NAME} · ${team.name.toUpperCase()}`;
   document.title = `${team.name} — Présences`;
   document.getElementById("recapTitle").textContent = `Récap de la saison · ${team.name}`;
-  document.getElementById("addPlayerTitle").textContent = `Joueurs · ${team.name}`;
+  document.getElementById("addPlayerTitle").textContent = `Ajouter un joueur · ${team.name}`;
   document.getElementById("addDateTitle").textContent = `Ajouter une date · ${team.name}`;
   const active = el.querySelector(".team-tab.active");
   if (active) active.scrollIntoView({ inline: "center", block: "nearest" });
@@ -1253,6 +1406,85 @@ document.getElementById("closeLicenceSheet").addEventListener("click", closeLice
 document.getElementById("submitLicence").addEventListener("click", submitLicence);
 document.getElementById("licenceInput").addEventListener("keydown", e => { if (e.key === "Enter") submitLicence(); });
 
+/* ---------- Menu ⋮ des joueurs ---------- */
+let menuPlayer = null;
+function closePlayerMenu() {
+  menuPlayer = null;
+  const m = document.getElementById("playerMenu");
+  if (m) m.classList.remove("open");
+}
+function openPlayerMenu(p, anchor) {
+  const m = document.getElementById("playerMenu");
+  if (menuPlayer && menuPlayer.id === p.id && m.classList.contains("open")) { closePlayerMenu(); return; }
+  menuPlayer = p;
+  m.classList.add("open");
+  const r = anchor.getBoundingClientRect();
+  const h = m.offsetHeight, w = m.offsetWidth;
+  let top = r.bottom + 6;
+  if (top + h > window.innerHeight - 8) top = Math.max(8, r.top - h - 6);
+  let left = r.right - w;
+  if (left < 8) left = 8;
+  m.style.top = top + "px";
+  m.style.left = left + "px";
+}
+document.addEventListener("click", ev => { if (!ev.target.closest("#playerMenu")) closePlayerMenu(); });
+document.addEventListener("keydown", ev => { if (ev.key === "Escape") closePlayerMenu(); });
+window.addEventListener("scroll", closePlayerMenu, { passive: true });
+window.addEventListener("resize", closePlayerMenu);
+
+document.getElementById("menuDelete").addEventListener("click", () => {
+  const p = menuPlayer;
+  closePlayerMenu();
+  if (!p) return;
+  if (confirm(`Supprimer ${p.prenom} ${p.nom} de l’effectif ?\n\nIl disparaît de la feuille pour tout le monde. Ses présences déjà enregistrées sont conservées et tu peux le rétablir depuis « ＋ Joueur ».`)) removePlayer(p.id);
+});
+
+let renameId = null;
+document.getElementById("menuRename").addEventListener("click", () => {
+  const p = menuPlayer;
+  closePlayerMenu();
+  if (!p) return;
+  renameId = p.id;
+  document.getElementById("renamePrenom").value = p.prenom;
+  document.getElementById("renameNom").value = p.nom;
+  openSheet("renameOverlay", "renameSheet");
+  setTimeout(() => document.getElementById("renamePrenom").focus(), 260);
+});
+function closeRenameSheet() { closeSheetPair("renameOverlay", "renameSheet"); renameId = null; }
+async function submitRename() {
+  if (!renameId) return;
+  const prenom = document.getElementById("renamePrenom").value.trim();
+  const nom = document.getElementById("renameNom").value.trim();
+  if (!prenom && !nom) return;
+  const id = renameId;
+  closeRenameSheet();
+  await renamePlayer(id, prenom, nom);
+}
+document.getElementById("renameOverlay").addEventListener("click", closeRenameSheet);
+document.getElementById("closeRenameSheet").addEventListener("click", closeRenameSheet);
+document.getElementById("submitRename").addEventListener("click", submitRename);
+["renamePrenom", "renameNom"].forEach(id => document.getElementById(id).addEventListener("keydown", e => { if (e.key === "Enter") submitRename(); }));
+
+/* ---------- Bloc « Tâche » ---------- */
+document.getElementById("taskBtn").addEventListener("click", () => {
+  document.getElementById("taskTitle").textContent = `Tâches · ${currentTeam().name}`;
+  renderTasks();
+  openSheet("taskOverlay", "taskSheet");
+});
+function closeTaskSheet() { closeSheetPair("taskOverlay", "taskSheet"); }
+async function submitTask() {
+  const input = document.getElementById("taskInput");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  input.focus();
+  await addTask(text);
+}
+document.getElementById("taskOverlay").addEventListener("click", closeTaskSheet);
+document.getElementById("closeTaskSheet").addEventListener("click", closeTaskSheet);
+document.getElementById("submitTask").addEventListener("click", submitTask);
+document.getElementById("taskInput").addEventListener("keydown", e => { if (e.key === "Enter") submitTask(); });
+
 document.getElementById("addTeamBtn").addEventListener("click", () => {
   buildDayChips();
   const d = seasonDefaults();
@@ -1360,7 +1592,7 @@ function showGate(message, isError) {
   const g = document.getElementById("gate");
   g.innerHTML =
     '<p class="pw-club">' + esc(CLUB_NAME) + '</p>' +
-    '<p class="pw-title">Feuille de présence</p>' +
+    '<p class="pw-title">VBCF</p>' +
     '<form id="pwForm" autocomplete="off">' +
       '<input type="password" id="pwInput" placeholder="Mot de passe" aria-label="Mot de passe" autocapitalize="off" autocorrect="off" spellcheck="false" autofocus>' +
       '<button type="submit" id="pwBtn">Entrer</button>' +
