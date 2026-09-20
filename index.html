@@ -436,6 +436,20 @@
   #deleteTeamText { font-size: 14px; line-height: 1.5; margin: 0 0 14px; }
   .add-submit.danger-submit { background: var(--absent); margin-top: 4px; }
   .add-submit.ghost-submit { background: transparent; color: var(--text-dim); border: 1px solid var(--border); margin-top: 8px; }
+
+  /* ---------- Actions de séance, séances annulées, assiduité ---------- */
+  .session-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 14px; }
+  .chip-btn {
+    border: 1px solid var(--border); background: var(--surface); color: var(--text);
+    border-radius: 999px; padding: 8px 14px; font: 600 13px 'Inter', sans-serif; cursor: pointer;
+  }
+  .chip-btn.primary { background: var(--present-bg); border-color: var(--present); color: var(--present); }
+  .chip-btn.on { background: var(--excused-bg); border-color: var(--excused); color: var(--excused); }
+  .chip-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+  .date-pill.cancelled { opacity: 0.55; text-decoration: line-through; }
+  .streak { display: block; margin-top: 2px; font-size: 11px; font-weight: 600; color: var(--absent); }
+  .recap-stats .rate { min-width: 46px; text-align: right; }
+  .recap-note { color: var(--text-dim); font-size: 12px; line-height: 1.45; margin: 4px 0 0; }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -489,6 +503,10 @@
     <span><span class="dot present"></span>Présent</span>
     <span><span class="dot absent"></span>Absent</span>
     <span><span class="dot excused"></span>Excusé</span>
+  </div>
+  <div class="session-actions" id="sessionActions">
+    <button type="button" class="chip-btn primary" id="markAllBtn" title="Marque présents les joueurs pas encore pointés">Tous présents</button>
+    <button type="button" class="chip-btn" id="cancelSessionBtn">Séance annulée</button>
   </div>
   <section class="daily-recap" aria-labelledby="dailyRecapTitle">
     <div class="recap-label">
@@ -837,6 +855,7 @@ function subscribeTeam(tid) {
         marks: isObj(v.marks) ? v.marks : {},
         note: typeof v.note === "string" ? v.note : "",
         notes: isObj(v.notes) ? v.notes : {},
+        cancelled: v.cancelled === true,
       };
     });
     T.sessions = s;
@@ -882,12 +901,59 @@ function startTeamsSub() {
 /* ============================================================
    Actions
    ============================================================ */
-function sessionOf(iso) { return T.sessions[iso] || { marks: {}, note: "", notes: {} }; }
+function sessionOf(iso) { return T.sessions[iso] || { marks: {}, note: "", notes: {}, cancelled: false }; }
 function ensureSession(iso) {
-  if (!T.sessions[iso]) T.sessions[iso] = { marks: {}, note: "", notes: {} };
+  if (!T.sessions[iso]) T.sessions[iso] = { marks: {}, note: "", notes: {}, cancelled: false };
   return T.sessions[iso];
 }
 function statusFor(iso, pid) { return (T.sessions[iso] && T.sessions[iso].marks[pid]) || "none"; }
+function isCancelled(iso) { return !!(T.sessions[iso] && T.sessions[iso].cancelled); }
+
+// Séances réellement tenues : non annulées et avec au moins un joueur pointé.
+function heldDates() {
+  return DATES.filter(iso => !isCancelled(iso) && T.sessions[iso] && Object.values(T.sessions[iso].marks).some(s => s !== "none"));
+}
+function playerStats(pid, held = heldDates()) {
+  let present = 0, absent = 0, excused = 0;
+  held.forEach(iso => {
+    const s = statusFor(iso, pid);
+    if (s === "present") present++;
+    else if (s === "absent") absent++;
+    else if (s === "excused") excused++;
+  });
+  const marked = present + absent + excused;
+  let streak = 0;   // absences consécutives les plus récentes (les excusés sont ignorés)
+  for (let i = held.length - 1; i >= 0; i--) {
+    const s = statusFor(held[i], pid);
+    if (s === "none") continue;
+    if (s === "absent") streak++; else break;
+  }
+  return { present, absent, excused, rate: marked ? Math.round(present * 100 / marked) : null, streak };
+}
+
+async function markAllPresent() {
+  const iso = currentIso;
+  if (!iso || isCancelled(iso)) return;
+  const s = ensureSession(iso);
+  const patch = {};
+  PLAYERS.forEach(p => { if ((s.marks[p.id] || "none") === "none") patch[p.id] = "present"; });
+  if (!Object.keys(patch).length) return;
+  Object.assign(s.marks, patch);
+  renderPlayerList();
+  renderSessionBar();
+  const tid = currentTeamId;
+  await persist(() => dbWrite(sessRef(tid, iso), { marks: patch }));
+}
+async function toggleCancelled() {
+  const iso = currentIso;
+  if (!iso) return;
+  const s = ensureSession(iso);
+  s.cancelled = !s.cancelled;
+  const next = s.cancelled;
+  renderAll();
+  const tid = currentTeamId;
+  await persist(() => dbWrite(sessRef(tid, iso), { cancelled: next }));
+}
 function licenceFor(p) { return String(T.licences[p.id] ?? p.licence ?? "").trim(); }
 
 function setStatus(iso, pid, status) {
@@ -1061,7 +1127,7 @@ function findDefaultDateIndex() {
 }
 
 function renderDateScroller() {
-  const sig = DATES.join(",") + "|" + currentIso;
+  const sig = DATES.join(",") + "|" + currentIso + "|" + DATES.filter(isCancelled).join(",");
   if (sig === dateSignature) return false;
   dateSignature = sig;
   const el = document.getElementById("dateScroller");
@@ -1070,7 +1136,7 @@ function renderDateScroller() {
   DATES.forEach(iso => {
     const dt = parseDate(iso);
     const pill = document.createElement("div");
-    pill.className = "date-pill" + (iso === currentIso ? " active" : "") + (iso === t ? " today-marker" : "");
+    pill.className = "date-pill" + (iso === currentIso ? " active" : "") + (iso === t ? " today-marker" : "") + (isCancelled(iso) ? " cancelled" : "");
     pill.innerHTML = `<span class="dow">${DOW[dt.getDay()]}</span>${dt.getDate()} ${MOIS[dt.getMonth()]}`;
     pill.addEventListener("click", () => { currentIso = iso; renderAll(); });
     el.appendChild(pill);
@@ -1082,7 +1148,19 @@ function scrollActiveIntoView() {
   if (active) active.scrollIntoView({ inline: "center", block: "nearest" });
 }
 
+function renderSessionActions() {
+  const iso = currentIso;
+  const cancelled = !!iso && isCancelled(iso);
+  const unmarked = iso ? PLAYERS.filter(p => statusFor(iso, p.id) === "none").length : 0;
+  document.getElementById("markAllBtn").disabled = !iso || cancelled || unmarked === 0;
+  const cancelBtn = document.getElementById("cancelSessionBtn");
+  cancelBtn.disabled = !iso;
+  cancelBtn.classList.toggle("on", cancelled);
+  cancelBtn.textContent = cancelled ? "Rétablir la séance" : "Séance annulée";
+}
+
 function renderSessionBar() {
+  renderSessionActions();
   const iso = currentIso;
   if (!iso) {
     document.getElementById("sessionDate").textContent = "Aucune séance";
@@ -1091,6 +1169,7 @@ function renderSessionBar() {
   }
   const dt = parseDate(iso);
   document.getElementById("sessionDate").textContent = `${DOW[dt.getDay()]} ${dt.getDate()} ${MOIS[dt.getMonth()]} ${dt.getFullYear()}`;
+  if (isCancelled(iso)) { document.getElementById("sessionCount").textContent = "Séance annulée"; return; }
   const marked = PLAYERS.filter(p => statusFor(iso, p.id) !== "none").length;
   const present = PLAYERS.filter(p => statusFor(iso, p.id) === "present").length;
   document.getElementById("sessionCount").textContent = `${present} présent${present>1?"s":""} · ${marked}/${PLAYERS.length} pointés`;
@@ -1119,15 +1198,25 @@ function renderPlayerList() {
     return;
   }
   const sess = sessionOf(iso);
+  if (sess.cancelled) {
+    const empty = document.createElement("div");
+    empty.className = "empty-state";
+    empty.textContent = "Séance annulée : elle n’est pas comptée dans les présences. Tu peux noter la raison dans le résumé du jour.";
+    list.appendChild(empty);
+    return;
+  }
+  const held = heldDates();
   PLAYERS.forEach(p => {
     const row = document.createElement("div");
     row.className = "player-row";
     const status = statusFor(iso, p.id);
+    const streak = playerStats(p.id, held).streak;
     row.innerHTML = `
       <div class="bib">${p.numero != null && p.numero !== "" ? esc(p.numero) : "–"}</div>
       <div class="names">
         <div class="prenom">${esc(p.prenom)}</div>
         <div class="nom">${esc(p.nom)}</div>
+        ${streak >= 3 ? `<span class="streak">${streak} absences d’affilée</span>` : ""}
       </div>
       <div class="status-toggle">
         <button class="status-btn ${status==='present'?'on-present':''}" data-status="present" title="Présent" aria-label="Présent">✓</button>
@@ -1179,20 +1268,15 @@ function renderRecap() {
   el.innerHTML = "";
   const seasonField = document.getElementById("seasonRecap");
   if (document.activeElement !== seasonField) seasonField.value = "season|season" in drafts ? drafts["season|season"] : T.recaps.season;
-  const totalSessions = DATES.filter(d => T.sessions[d] && Object.values(T.sessions[d].marks).some(s => s !== "none")).length;
+  const held = heldDates();
   PLAYERS.forEach(p => {
-    let present = 0, absent = 0, excused = 0;
-    DATES.forEach(iso => {
-      const s = statusFor(iso, p.id);
-      if (s === "present") present++;
-      else if (s === "absent") absent++;
-      else if (s === "excused") excused++;
-    });
+    const { present, absent, excused, rate } = playerStats(p.id, held);
     const row = document.createElement("div");
     row.className = "recap-row";
     row.innerHTML = `
       <div class="recap-name"><span class="bib" style="width:26px;height:26px;font-size:11px;">${p.numero != null && p.numero !== "" ? esc(p.numero) : "–"}</span>${esc(p.prenom)} ${esc(p.nom)}</div>
       <div class="recap-stats">
+        <span class="rate" title="Taux de présence"><b>${rate == null ? "–" : rate + " %"}</b></span>
         <span><b>${present}</b> ✓</span>
         <span><b>${excused}</b> !</span>
         <span><b>${absent}</b> ✕</span>
@@ -1206,9 +1290,13 @@ function renderRecap() {
       "player", p.id, T.recaps.player[p.id] || "");
     el.appendChild(row);
   });
+  const cancelledCount = DATES.filter(isCancelled).length;
   const summary = document.createElement("p");
-  summary.style.cssText = "color:var(--text-dim); font-size:12px; margin-top:12px;";
-  summary.textContent = `${totalSessions} séance(s) pointée(s) sur ${DATES.length} au total.`;
+  summary.className = "recap-note";
+  summary.style.marginTop = "12px";
+  summary.textContent = `${held.length} séance(s) pointée(s) sur ${DATES.length - cancelledCount} prévue(s)` +
+    (cancelledCount ? ` (${cancelledCount} annulée(s), non comptée(s))` : "") +
+    ". Le taux de présence d’un joueur = présences ÷ séances où il a été pointé (excusés inclus).";
   el.appendChild(summary);
 }
 
@@ -1761,6 +1849,8 @@ function openAddTeamSheet() {
 document.getElementById("addTeamBtn").addEventListener("click", openAddTeamSheet);
 document.getElementById("homeAddTeam").addEventListener("click", openAddTeamSheet);
 document.getElementById("homeBtn").addEventListener("click", requestHome);
+document.getElementById("markAllBtn").addEventListener("click", markAllPresent);
+document.getElementById("cancelSessionBtn").addEventListener("click", toggleCancelled);
 document.getElementById("homeRestore").addEventListener("click", restoreBuiltinTeam);
 
 document.getElementById("deleteTeamOverlay").addEventListener("click", closeDeleteTeamSheet);
