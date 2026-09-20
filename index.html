@@ -358,7 +358,7 @@
 </main>
 
 <div class="bottom-bar">
-  <button class="bottom-btn secondary" id="addPlayerBtn">＋ Joueur</button>
+  <button class="bottom-btn secondary" id="addPlayerBtn">＋ Joueurs</button>
   <button class="bottom-btn" id="recapBtn">Récap saison</button>
 </div>
 
@@ -381,7 +381,7 @@
 <div class="sheet" id="addSheet">
   <button class="close-sheet" id="closeAddSheet" aria-label="Fermer">✕</button>
   <div class="sheet-handle"></div>
-  <h2 id="addPlayerTitle">Ajouter un joueur</h2>
+  <h2 id="addPlayerTitle">Ajouter ou supprimer un joueur</h2>
   <div class="field">
     <label for="newPrenom">Prénom</label>
     <input type="text" id="newPrenom" placeholder="Ex. Lucas" autocomplete="off">
@@ -497,7 +497,7 @@ const BUILTIN_TEAMS = [
      recaps:   { player:{pid:text}, season:"" }
    ============================================================ */
 function emptyData() {
-  return { sessions: {}, roster: { players: [], dates: [] }, licences: {}, recaps: { player: {}, season: "" } };
+  return { sessions: {}, roster: { players: [], dates: [], removed: [] }, licences: {}, recaps: { player: {}, season: "" } };
 }
 function normalizeData(d) {
   const e = emptyData();
@@ -507,6 +507,7 @@ function normalizeData(d) {
     roster: {
       players: d.roster && Array.isArray(d.roster.players) ? d.roster.players : [],
       dates: d.roster && Array.isArray(d.roster.dates) ? d.roster.dates : [],
+      removed: d.roster && Array.isArray(d.roster.removed) ? d.roster.removed : [],
     },
     licences: isObj(d.licences) ? d.licences : {},
     recaps: {
@@ -545,7 +546,7 @@ function baseDates() { return currentTeam().dates || []; }
 function basePlayers() { return currentTeam().players || []; }
 
 function refreshDerived() {
-  PLAYERS = basePlayers().concat(T.roster.players);
+  PLAYERS = basePlayers().concat(T.roster.players).filter(p => !T.roster.removed.includes(p.id));
   DATES = Array.from(new Set(baseDates().concat(T.roster.dates))).sort();
   if (!currentIso || !DATES.includes(currentIso)) currentIso = DATES.length ? DATES[findDefaultDateIndex()] : null;
 }
@@ -642,10 +643,10 @@ function subscribeTeam(tid) {
   }, onErr));
   unsubs.push(base.collection("meta").onSnapshot(snap => {
     if (tid !== currentTeamId) return;
-    let roster = { players: [], dates: [] }, licences = {}, recaps = { player: {}, season: "" };
+    let roster = { players: [], dates: [], removed: [] }, licences = {}, recaps = { player: {}, season: "" };
     snap.docs.forEach(d => {
       const v = d.data() || {};
-      if (d.id === "roster") roster = { players: Array.isArray(v.players) ? v.players : [], dates: Array.isArray(v.dates) ? v.dates : [] };
+      if (d.id === "roster") roster = { players: Array.isArray(v.players) ? v.players : [], dates: Array.isArray(v.dates) ? v.dates : [], removed: Array.isArray(v.removed) ? v.removed : [] };
       else if (d.id === "licences") licences = isObj(v.map) ? v.map : {};
       else if (d.id === "recaps") recaps = { player: isObj(v.player) ? v.player : {}, season: typeof v.season === "string" ? v.season : "" };
     });
@@ -746,7 +747,7 @@ async function saveRecap(scope, key, content, stateEl, dk) {
 
 function saveRoster() {
   const tid = currentTeamId;
-  const roster = { players: T.roster.players.slice(), dates: T.roster.dates.slice() };
+  const roster = { players: T.roster.players.slice(), dates: T.roster.dates.slice(), removed: T.roster.removed.slice() };
   return persist(() => enqueue("roster:" + tid, () => metaRef(tid, "roster").set(roster)));
 }
 
@@ -768,7 +769,14 @@ async function addPlayer(prenom, nom, numero, licence) {
   if (licence) await setLicence(id, licence);
 }
 async function removePlayer(id) {
-  T.roster.players = T.roster.players.filter(p => p.id !== id);
+  if (!T.roster.removed.includes(id)) T.roster.removed = T.roster.removed.concat([id]);
+  refreshDerived();
+  renderAll();
+  renderCustomPlayersList();
+  await saveRoster();
+}
+async function restorePlayer(id) {
+  T.roster.removed = T.roster.removed.filter(x => x !== id);
   refreshDerived();
   renderAll();
   renderCustomPlayersList();
@@ -855,7 +863,7 @@ function renderPlayerList() {
   const list = document.getElementById("playerList");
   list.innerHTML = "";
   const hints = [];
-  if (!PLAYERS.length) hints.push("Aucun joueur pour l’instant : ajoute-en avec « ＋ Joueur » en bas.");
+  if (!PLAYERS.length) hints.push("Aucun joueur pour l’instant : ajoute-en avec « ＋ Joueurs » en bas.");
   if (!iso) hints.push("Aucune séance : ajoute une date avec le ＋ en haut.");
   if (hints.length) {
     const empty = document.createElement("div");
@@ -977,6 +985,7 @@ function scheduleRender() {
     }
     renderAll();
     if (document.getElementById("sheet").classList.contains("open")) renderRecap();
+    if (document.getElementById("addSheet").classList.contains("open")) renderCustomPlayersList();
   });
 }
 document.addEventListener("focusout", () => {
@@ -987,19 +996,47 @@ document.addEventListener("focusout", () => {
 /* ---------- Listes des ajouts ---------- */
 function renderCustomPlayersList() {
   const el = document.getElementById("customPlayersList");
-  if (!T.roster.players.length) { el.innerHTML = ""; return; }
-  el.innerHTML = "<h3>Joueurs ajoutés</h3>";
-  T.roster.players.forEach(p => {
-    const row = document.createElement("div");
-    row.className = "custom-player-row";
-    row.innerHTML = `<span>${esc(p.prenom)} ${esc(p.nom)}${p.numero ? " · n°" + esc(p.numero) : ""}</span>`;
-    const btn = document.createElement("button");
-    btn.className = "remove-player";
-    btn.textContent = "Retirer";
-    btn.addEventListener("click", () => removePlayer(p.id));
-    row.appendChild(btn);
-    el.appendChild(row);
-  });
+  el.innerHTML = "";
+  const all = basePlayers().concat(T.roster.players);
+  const active = all.filter(p => !T.roster.removed.includes(p.id));
+  const removed = all.filter(p => T.roster.removed.includes(p.id));
+  const label = p => `${esc(p.prenom)} ${esc(p.nom)}${p.numero ? " · n°" + esc(p.numero) : ""}`;
+  if (active.length) {
+    const h = document.createElement("h3");
+    h.textContent = "Effectif · supprimer un joueur";
+    el.appendChild(h);
+    active.forEach(p => {
+      const row = document.createElement("div");
+      row.className = "custom-player-row";
+      row.innerHTML = `<span>${label(p)}</span>`;
+      const btn = document.createElement("button");
+      btn.className = "remove-player";
+      btn.textContent = "Supprimer";
+      btn.addEventListener("click", () => {
+        if (confirm(`Supprimer ${p.prenom} ${p.nom} de l’effectif ?\n\nIl disparaît de la feuille pour tout le monde. Ses présences déjà enregistrées sont conservées et tu peux le rétablir ensuite.`)) removePlayer(p.id);
+      });
+      row.appendChild(btn);
+      el.appendChild(row);
+    });
+  }
+  if (removed.length) {
+    const h = document.createElement("h3");
+    h.style.marginTop = "18px";
+    h.textContent = "Joueurs supprimés";
+    el.appendChild(h);
+    removed.forEach(p => {
+      const row = document.createElement("div");
+      row.className = "custom-player-row";
+      row.innerHTML = `<span style="opacity:.6">${label(p)}</span>`;
+      const btn = document.createElement("button");
+      btn.className = "remove-player";
+      btn.style.color = "var(--present)";
+      btn.textContent = "Rétablir";
+      btn.addEventListener("click", () => restorePlayer(p.id));
+      row.appendChild(btn);
+      el.appendChild(row);
+    });
+  }
 }
 function renderCustomDatesList() {
   const el = document.getElementById("customDatesList");
@@ -1037,7 +1074,7 @@ function renderTeamTabs(force) {
   document.getElementById("clubLine").textContent = `${CLUB_NAME} · ${team.name.toUpperCase()}`;
   document.title = `${team.name} — Présences`;
   document.getElementById("recapTitle").textContent = `Récap de la saison · ${team.name}`;
-  document.getElementById("addPlayerTitle").textContent = `Ajouter un joueur · ${team.name}`;
+  document.getElementById("addPlayerTitle").textContent = `Joueurs · ${team.name}`;
   document.getElementById("addDateTitle").textContent = `Ajouter une date · ${team.name}`;
   const active = el.querySelector(".team-tab.active");
   if (active) active.scrollIntoView({ inline: "center", block: "nearest" });
