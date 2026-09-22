@@ -731,6 +731,19 @@ const IMPORT_LISTS = [
     {nom:"Scarcella", prenom:"Leo", numero:4},
     {nom:"Garcia", prenom:"Arthur", numero:99},
   ] },
+  { team: "DEP2F", players: [
+    {nom:"Da Rocha", prenom:"Elyna", numero:null},
+    {nom:"Villard", prenom:"Romane", numero:null},
+    {nom:"Double", prenom:"Louise", numero:null},
+    {nom:"Mairet", prenom:"Eden", numero:null},
+    {nom:"Bruneau de la Salle", prenom:"Emma", numero:null},
+    {nom:"Auffret", prenom:"Jade", numero:null},
+    {nom:"Derreumaux", prenom:"Capucine", numero:null},
+    {nom:"Gouiaa", prenom:"Haifa", numero:null},
+    {nom:"Juan", prenom:"Clara", numero:null},
+    {nom:"Berger", prenom:"Chloé", numero:null},
+    {nom:"Bonnetain", prenom:"Carla", numero:null},
+  ] },
 ];
 const CLUB_NAME = "FRANCHEVILLE VOLLEY";
 const KEY_TEAM = "m13_francheville_current_team_v1";
@@ -738,22 +751,8 @@ const KEY_LOCAL = "m13_francheville_local_v2";
 const DOW = ["DIM","LUN","MAR","MER","JEU","VEN","SAM"];
 const MOIS = ["janv","fév","mars","avr","mai","juin","juil","août","sept","oct","nov","déc"];
 const DAY_CHIPS = [[1,"Lun"],[2,"Mar"],[3,"Mer"],[4,"Jeu"],[5,"Ven"],[6,"Sam"],[0,"Dim"]];
-const DEP2F_PLAYERS = [
-  {id:"d1", nom:"Da Rocha", prenom:"Elyna", numero:null},
-  {id:"d2", nom:"Villard", prenom:"Romane", numero:null},
-  {id:"d3", nom:"Double", prenom:"Louise", numero:null},
-  {id:"d4", nom:"Mairet", prenom:"Eden", numero:null},
-  {id:"d5", nom:"Bruneau de la Salle", prenom:"Emma", numero:null},
-  {id:"d6", nom:"Auffret", prenom:"Jade", numero:null},
-  {id:"d7", nom:"Derreumaux", prenom:"Capucine", numero:null},
-  {id:"d8", nom:"Gouiaa", prenom:"Haifa", numero:null},
-  {id:"d9", nom:"Juan", prenom:"Clara", numero:null},
-  {id:"d10", nom:"Berger", prenom:"Chloé", numero:null},
-  {id:"d11", nom:"Bonnetain", prenom:"Carla", numero:null},
-];
 const BUILTIN_TEAMS = [
   { id: DEFAULT_TEAM_ID, name: "M13 Garçons", dates: BASE_DATES, players: BASE_PLAYERS, builtin: true },
-  { id: "dep2f", name: "DEP2F", dates: [], players: DEP2F_PLAYERS, builtin: true },
 ];
 
 /* ============================================================
@@ -1014,8 +1013,8 @@ function renderImportBanner() {
   document.getElementById("importBtn").disabled = false;
   if (missing.length) {
     document.getElementById("importText").textContent = missing.length > 1
-      ? `${missing.length} joueurs de la liste ${currentTeam().name} ne sont pas encore dans l’effectif.`
-      : `1 joueur de la liste ${currentTeam().name} n’est pas encore dans l’effectif.`;
+      ? `${missing.length} personnes de la liste ${currentTeam().name} ne sont pas encore dans l’effectif.`
+      : `1 personne de la liste ${currentTeam().name} n’est pas encore dans l’effectif.`;
   }
 }
 async function importPending() {
